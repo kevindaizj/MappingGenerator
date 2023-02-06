@@ -1,19 +1,142 @@
-﻿<h1>Counter</h1>
+﻿@using System.Reflection;
+@using System.Text;
+@inject NotificationService _notice
 
-<p>Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<Search Placeholder="Select Assembly"  @bind-Value="@assemblyPath" EnterButton="true" OnSearch="OpenFile" ReadOnly />
+<br/><br/>
 
-<Button Type="primary">Hello World!</Button>
+@if (!string.IsNullOrWhiteSpace(assemblyPath) && options != null )
+{
+    <GridRow Gutter="16">
+        <GridCol Class="gutter-row" Span="12">
+            <Select TItem="SelectOption"
+                TItemValue="string"
+                DataSource="@options"
+                @bind-Value="@fromTypeName"
+                LabelName="@nameof(SelectOption.Label)"
+                ValueName="@nameof(SelectOption.Value)"
+                Placeholder="Select a type"
+                DefaultActiveFirstOption="false"
+                EnableSearch
+                AllowClear>
+            </Select>
+        </GridCol>
+        <GridCol Class="gutter-row" Span="12">
+            <Select TItem="SelectOption"
+                TItemValue="string"
+                DataSource="@options"
+                @bind-Value="@toTypeName"
+                LabelName="@nameof(SelectOption.Label)"
+                ValueName="@nameof(SelectOption.Value)"
+                Placeholder="Select a type"
+                DefaultActiveFirstOption="false"
+                EnableSearch
+                AllowClear>
+            </Select>
+        </GridCol>
+        
+    </GridRow>
 
+    <br />
+
+    <Button Type="primary" @onclick="Populate">Populate</Button>
+
+    <br />
+    <br />
+
+    <TextArea MinRows="10" @bind-Value="@resultTxt" ReadOnly />
+}
+
+
+
+<br/>
+
+<AntContainer />
 
 
 @code {
-    private int currentCount = 0;
 
-    private void IncrementCount()
+    class SelectOption
     {
-        currentCount++;
+        public string Value { get; set; } = default!;
+        public string Label { get; set; } = default!;
+    }
+
+    private string assemblyPath = string.Empty;
+
+    private List<SelectOption>? options;
+
+    private string? fromTypeName;
+
+    private string? toTypeName;
+
+    private string resultTxt = string.Empty;
+
+    private void OpenFile()
+    {
+        var dialog = new OpenFileDialog();
+        dialog.Filter = "Dll Files (*.dll)|*.dll|All files(*.*)|*.*";
+        dialog.RestoreDirectory = true;
+
+        var result = dialog.ShowDialog();
+        if (result == System.Windows.Forms.DialogResult.OK)
+        {
+            assemblyPath = dialog.FileName;
+
+            var asm = Assembly.LoadFrom(assemblyPath);
+            var types = asm.GetTypes().Where(t => t.IsClass).ToList();
+            options = types.Select(t => new SelectOption { Label = $"{t.Name!} ({string.Join('.', t.FullName!.Split(".").SkipLast(1))})", Value = t.FullName! }).ToList();
+
+        }
+    }
+
+    public async Task Populate()
+    {
+        resultTxt = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(assemblyPath) || string.IsNullOrWhiteSpace(fromTypeName) || string.IsNullOrWhiteSpace(toTypeName))
+        {
+            await Notifiy(NotificationType.Error, "请选择类型");
+            return;
+        }
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var types = asm.GetTypes().Where(t => t.IsClass).ToList();
+
+        var from = types.Single(t => t.FullName == this.fromTypeName);
+        var to = types.Single(t => t.FullName == this.toTypeName);
+
+        var fromProps = from.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
+        var toProps = to.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
+
+        var sb = new StringBuilder();
+        var nl = Environment.NewLine;
+        sb.Append($"new {to.Name} {nl}");
+        sb.Append("{");
+        sb.Append(nl);
+
+        foreach (var fp in fromProps)
+        {
+            var name = fp.Name;
+            var tp = toProps.FirstOrDefault(p => p.Name.ToUpper() == name.ToUpper());
+
+            sb.Append($"    {name} = o.{tp?.Name ?? string.Empty} {nl}");
+        }
+
+        sb.Append("}");
+
+        this.resultTxt = sb.ToString();
+    }
+
+    private async Task Notifiy(NotificationType type, string msg)
+    {
+        await _notice.Open(new NotificationConfig()
+            {
+                Message = type.ToString(),
+                Description = msg,
+                NotificationType = type
+            });
     }
 }
 

@@ -2,6 +2,10 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+body {
+    padding: 12px;
+}
+
 h1:focus {
     outline: none;
 }
