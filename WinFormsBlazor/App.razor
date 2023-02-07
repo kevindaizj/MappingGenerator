@@ -45,8 +45,14 @@
     <br />
     <br />
 
-    <TextArea MinRows="10" @bind-Value="@resultTxt" ReadOnly />
+    @*<TextArea MinRows="10" @bind-Value="@resultTxt" ReadOnly />*@
+    @*<br />*@
+    <div style="margin-top: 10px; width: 100%;  height: 430px">
+        <StandaloneCodeEditor Id="my-editor-instance-id" ConstructionOptions="EditorConstructionOptions" />
+    </div>
+    
 }
+
 
 
 
@@ -71,7 +77,23 @@
 
     private string? toTypeName;
 
-    private string resultTxt = string.Empty;
+    private string resultTxt = "hello world";
+
+    private StandaloneCodeEditor? editor;
+
+    private StandaloneEditorConstructionOptions EditorConstructionOptions(StandaloneCodeEditor editor)
+    {
+        this.editor = editor;
+        return new StandaloneEditorConstructionOptions
+            {
+                AutomaticLayout = true,
+                Language = "csharp",
+                Value = "",
+                ReadOnly = true,
+                Theme = "vs-dark",
+                CodeLens = true,
+            };
+    }
 
     private void OpenFile()
     {
@@ -111,7 +133,7 @@
         var toProps = to.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
 
         var sb = new StringBuilder();
-        var nl = Environment.NewLine;
+        var nl = System.Environment.NewLine;
         sb.Append($"new {to.Name} {nl}");
         sb.Append("{");
         sb.Append(nl);
@@ -121,12 +143,13 @@
             var name = fp.Name;
             var tp = toProps.FirstOrDefault(p => p.Name.ToUpper() == name.ToUpper());
 
-            sb.Append($"    {name} = o.{tp?.Name ?? string.Empty} {nl}");
+            sb.Append($"    {name} = o.{tp?.Name ?? string.Empty}, {nl}");
         }
 
         sb.Append("}");
 
         this.resultTxt = sb.ToString();
+        this.editor.SetValue(this.resultTxt);
     }
 
     private async Task Notifiy(NotificationType type, string msg)
