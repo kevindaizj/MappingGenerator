@@ -1,6 +1,8 @@
 ﻿@using System.Reflection;
 @using System.Text;
+@using WinFormsBlazor.Services;
 @inject NotificationService _notice
+@inject IMessageService _message
 
 
 <Search Placeholder="Select Assembly"  @bind-Value="@assemblyPath" EnterButton="true" OnSearch="OpenFile" ReadOnly />
@@ -8,28 +10,31 @@
 
 @if (!string.IsNullOrWhiteSpace(assemblyPath) && options != null )
 {
-    <GridRow Gutter="16">
-        <GridCol Class="gutter-row" Span="12">
+    <GridRow Gutter="2">
+        <GridCol Class="gutter-row" Span="11">
             <Select TItem="SelectOption"
                 TItemValue="string"
                 DataSource="@options"
                 @bind-Value="@fromTypeName"
                 LabelName="@nameof(SelectOption.Label)"
                 ValueName="@nameof(SelectOption.Value)"
-                Placeholder="Select a type"
+                Placeholder="From"
                 DefaultActiveFirstOption="false"
                 EnableSearch
                 AllowClear>
             </Select>
         </GridCol>
-        <GridCol Class="gutter-row" Span="12">
+        <GridCol Class="gutter-row" Span="2" style="text-align: center">
+            <Button Icon="@IconType.Outline.Swap" Shape="circle" @onclick="Swap" />
+        </GridCol>
+        <GridCol Class="gutter-row" Span="11">
             <Select TItem="SelectOption"
                 TItemValue="string"
                 DataSource="@options"
                 @bind-Value="@toTypeName"
                 LabelName="@nameof(SelectOption.Label)"
                 ValueName="@nameof(SelectOption.Value)"
-                Placeholder="Select a type"
+                Placeholder="To"
                 DefaultActiveFirstOption="false"
                 EnableSearch
                 AllowClear>
@@ -40,13 +45,18 @@
 
     <br />
 
-    <Button Type="primary" @onclick="Populate">Populate</Button>
+    <Button Type="primary" @onclick="MapToInstance">Map to New</Button>
+    <Button Type="primary" @onclick="MapToProp">Property mapping</Button>
 
     <br />
-    <br />
 
-    @*<TextArea MinRows="10" @bind-Value="@resultTxt" ReadOnly />*@
-    @*<br />*@
+    <div style="margin-top: 5px; text-align: right">
+        <Button @onclick="Copy" style="">
+            <Icon Type="copy" Theme="outline" /> Copy
+        </Button>
+    </div>
+    
+
     <div style="margin-top: 10px; width: 100%;  height: 430px">
         <StandaloneCodeEditor Id="my-editor-instance-id" ConstructionOptions="EditorConstructionOptions" />
     </div>
@@ -113,43 +123,47 @@
         }
     }
 
-    public async Task Populate()
+    private void Swap()
+    {
+        (this.toTypeName, this.fromTypeName) = (this.fromTypeName, this.toTypeName);
+    }
+
+    public async Task MapToInstance()
     {
         resultTxt = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(assemblyPath) || string.IsNullOrWhiteSpace(fromTypeName) || string.IsNullOrWhiteSpace(toTypeName))
+        if (string.IsNullOrWhiteSpace(assemblyPath) || string.IsNullOrWhiteSpace(toTypeName))
         {
-            await Notifiy(NotificationType.Error, "请选择类型");
+            await Notifiy(NotificationType.Error, "To类型必填");
             return;
         }
 
-        var asm = Assembly.LoadFrom(assemblyPath);
-        var types = asm.GetTypes().Where(t => t.IsClass).ToList();
+        this.resultTxt = MappingService.MapToInstace(assemblyPath, fromTypeName, toTypeName);
+        await editor!.SetValue(this.resultTxt);
+    }
 
-        var from = types.Single(t => t.FullName == this.fromTypeName);
-        var to = types.Single(t => t.FullName == this.toTypeName);
+    public async Task MapToProp()
+    {
+        resultTxt = string.Empty;
 
-        var fromProps = from.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
-        var toProps = to.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
-
-        var sb = new StringBuilder();
-        var nl = System.Environment.NewLine;
-        sb.Append($"new {to.Name} {nl}");
-        sb.Append("{");
-        sb.Append(nl);
-
-        foreach (var fp in fromProps)
+        if (string.IsNullOrWhiteSpace(assemblyPath) || string.IsNullOrWhiteSpace(toTypeName))
         {
-            var name = fp.Name;
-            var tp = toProps.FirstOrDefault(p => p.Name.ToUpper() == name.ToUpper());
-
-            sb.Append($"    {name} = o.{tp?.Name ?? string.Empty}, {nl}");
+            await Notifiy(NotificationType.Error, "To类型必填");
+            return;
         }
 
-        sb.Append("}");
+        this.resultTxt = MappingService.MapToProperties(assemblyPath, fromTypeName, toTypeName);
+        await editor!.SetValue(this.resultTxt);
+    }
 
-        this.resultTxt = sb.ToString();
-        this.editor.SetValue(this.resultTxt);
+    public async Task Copy()
+    {
+        var text = await editor!.GetValue();
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            Clipboard.SetDataObject(text);
+            await _message.Success("Copied");
+        }
     }
 
     private async Task Notifiy(NotificationType type, string msg)
@@ -161,5 +175,7 @@
                 NotificationType = type
             });
     }
+
+    
 }
 
