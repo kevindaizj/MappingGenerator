@@ -43,7 +43,29 @@
         
     </GridRow>
 
-    <br />
+
+    <GridRow Gutter="2" style="margin: 5px 0">
+        <GridCol Class="gutter-row" Span="13"></GridCol>
+        <GridCol Class="gutter-row" Span="11" style="text-align: right">
+            <a @onclick="() => showVarNameEdit = !showVarNameEdit">Set variable name</a>
+        </GridCol>
+    </GridRow>
+
+    @if (showVarNameEdit)
+    {
+        <GridRow Gutter="2">
+            <GridCol Class="gutter-row" Span="11">
+                <Input Placeholder="From variable name" @bind-Value="@fromVarName" />
+            </GridCol>
+            <GridCol Class="gutter-row" Span="2"></GridCol>
+            <GridCol Class="gutter-row" Span="11">
+                <Input Placeholder="To variable name" @bind-Value="@toVarName" />
+            </GridCol>
+        </GridRow>
+
+        <br />
+    }
+    
 
     <Button Type="primary" @onclick="MapToInstance">Map to New</Button>
     <Button Type="primary" @onclick="MapToProp">Property mapping</Button>
@@ -87,7 +109,13 @@
 
     private string? toTypeName;
 
-    private string resultTxt = "hello world";
+    private string? fromVarName;
+
+    private string? toVarName;
+
+    private string resultTxt = "";
+
+    private bool showVarNameEdit = false;
 
     private StandaloneCodeEditor? editor;
 
@@ -138,7 +166,7 @@
             return;
         }
 
-        this.resultTxt = MappingService.MapToInstace(assemblyPath, fromTypeName, toTypeName);
+        this.resultTxt = MappingService.MapToInstace(assemblyPath, fromTypeName, toTypeName, fromVarName);
         await editor!.SetValue(this.resultTxt);
     }
 
@@ -152,7 +180,7 @@
             return;
         }
 
-        this.resultTxt = MappingService.MapToProperties(assemblyPath, fromTypeName, toTypeName);
+        this.resultTxt = MappingService.MapToProperties(assemblyPath, fromTypeName, toTypeName, fromVarName, toVarName);
         await editor!.SetValue(this.resultTxt);
     }
 

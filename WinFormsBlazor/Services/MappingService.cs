@@ -9,7 +9,7 @@ namespace WinFormsBlazor.Services
 {
     public static class MappingService
     {
-        public static string MapToInstace(string assemblyPath, string? fromTypeName, string toTypeName)
+        public static string MapToInstace(string assemblyPath, string? fromTypeName, string toTypeName, string? fromVarName = null)
         {
             var isFromNull = string.IsNullOrWhiteSpace(fromTypeName);
             var (fromProps, toProps) = GetFromToProperties(assemblyPath, fromTypeName, toTypeName);
@@ -28,7 +28,7 @@ namespace WinFormsBlazor.Services
 
                 var comment = fp == null ? (isFromNull ? "" : "//") : "";
 
-                sb.Append($"    {comment}{name} = o.{fpName}, {nl}");
+                sb.Append($"    {comment}{name} = {fromVarName ?? "o"}.{fpName}, {nl}");
             }
 
             sb.Append("}");
@@ -36,13 +36,10 @@ namespace WinFormsBlazor.Services
             return sb.ToString();
         }
 
-        public static string MapToProperties(string assemblyPath, string? fromTypeName, string toTypeName)
+        public static string MapToProperties(string assemblyPath, string? fromTypeName, string toTypeName, string? fromVarName = null, string? toVarName = null)
         {
             var isFromNull = string.IsNullOrWhiteSpace(fromTypeName);
             var (fromProps, toProps) = GetFromToProperties(assemblyPath, fromTypeName, toTypeName);
-
-            var fromVar = "from";
-            var toVar = "to";
 
             var sb = new StringBuilder();
             var nl = System.Environment.NewLine;
@@ -55,7 +52,7 @@ namespace WinFormsBlazor.Services
 
                 var comment = fp == null ? (isFromNull ? "" : "//") : "";
 
-                sb.Append($"{comment}{toVar}.{name} = {fromVar}.{fpName}; {nl}");
+                sb.Append($"{comment}{toVarName ?? "to"}.{name} = {fromVarName ?? "from"}.{fpName}; {nl}");
             }
 
             return sb.ToString();

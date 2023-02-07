@@ -36,7 +36,7 @@
             this.blazorWebView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.blazorWebView1.Location = new System.Drawing.Point(0, 0);
             this.blazorWebView1.Name = "blazorWebView1";
-            this.blazorWebView1.Size = new System.Drawing.Size(1046, 690);
+            this.blazorWebView1.Size = new System.Drawing.Size(1046, 680);
             this.blazorWebView1.TabIndex = 0;
             this.blazorWebView1.Text = "blazorWebView1";
             this.blazorWebView1.Click += new System.EventHandler(this.blazorWebView1_Click);
@@ -45,7 +45,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1046, 690);
+            this.ClientSize = new System.Drawing.Size(1046, 680);
             this.Controls.Add(this.blazorWebView1);
             this.Name = "Form1";
             this.Text = "Form1";
